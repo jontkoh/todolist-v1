@@ -13,7 +13,7 @@ app.set("view engine", 'ejs');
 // mongoose.connect("mongodb://localhost:27017/todolistDB", 
 //                  {useNewUrlParser: true, useUnifiedTopology: true});
 
-mongoose.connect(`mongodb+srv://admin-jtk:${MONGODB_PASSWORD}@cluster0.zt6mz.mongodb.net/todolistDB?retryWrites=true&w=majority`)
+mongoose.connect(`mongodb+srv://admin-jtk:${process.env.MONGODB_PASSWORD}@cluster0.zt6mz.mongodb.net/todolistDB?retryWrites=true&w=majority`)
 const itemsSchema = mongoose.Schema({
   name: {
     type: String,
