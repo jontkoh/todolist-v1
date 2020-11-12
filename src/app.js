@@ -1,10 +1,9 @@
 import express, {json, urlencoded} from "express";
 import mongoose from "mongoose";
 import { getDay } from "./get-day";
+import _ from "lodash";
 
 const app = express();
-const itemsArr = [];
-const workItemsArr = [];
 app.use(urlencoded({extended:true}));
 app.use(json());
 app.use(express.static("public"));
@@ -30,53 +29,57 @@ const listSchema = mongoose.Schema({
 const List = mongoose.model('List', listSchema);
 
 const item1 = new Item({
-  name: "test1"
+  name: "Make a new item"
 });
 
 const item2 = new Item({
-  name: "test2"
+  name: "<---- click here to delete"
 });
 
 const item3 = new Item({
-  name: "test3"
+  name: "🤯"
 });
 
 const defaultItems = [item1, item2, item3];
 
-// Item.insertMany(defaultItems, (err) => {
-//   if (err){
-//     console.log(err);
-//   }
-//   else{
-//     console.log("success");
-//   }
-// });
-
-// const itemsArr = Item.find((err, arr) => {
-//   if (err){
-//     console.log(err);
-//   }
-//   else {
-//     arr.forEach((element) => {
-//       return element.name;
-//     }) 
-//   }
-// })
-
-
-
 app.get("/", (req, res) => {
   const thisDay = getDay();
-  Item.find({}, (err, foundItems)=> {
-    if(err) {
-      console.log(err);
-    }
-    else{
-      // console.log(foundItems);
-      res.render('list', {listTitle: thisDay, items: foundItems})
-    }
-  }) 
-  
+  try {
+    Item.findOne({}, (err, item) => {
+      if(!err) {
+        if (!item) {
+          // item1.save();
+          // item2.save();
+          // item3.save();
+          defaultItems.forEach(element => {
+            
+            Item.create({name: element.name}, (err, doc) => {
+              if (err) {
+                console.log(err);
+              }
+              else{
+                console.log("added: " + doc.name)
+              }
+            }) 
+          });
+          res.redirect("/");
+        }
+        else {
+          Item.find({}, (err, foundItems)=> {
+            if(err) {
+              console.log(err);
+            }
+            else{
+              // console.log(foundItems);
+              res.render('list', {listTitle: thisDay, items: foundItems})
+            }
+          })
+        }
+      }
+    }) 
+  } catch (error) {
+    console.error(error);
+  } 
 
 });
 
@@ -84,6 +87,7 @@ app.post("/", (req, res) => {
   const {newItem} = req.body;
   const {list} = req.body;
   if (list === getDay()) {
+    
     Item.create({name: newItem}, (err, doc) => {
       if (err) {
         console.log(err);
@@ -108,19 +112,33 @@ app.post("/", (req, res) => {
 
 app.post("/delete", (req, res) => {
   const {deletedItem} = req.body;
-  Item.findByIdAndDelete(deletedItem, (err, doc) => {
-    if (err) {
-      console.log(err);
-    }
-    else {
-      console.log("deleted: "+ doc.name);
-      res.redirect("/");
-    }
-  })
+  const {listName} = req.body;
+  try {
+    if(listName === getDay()){
+        Item.findByIdAndDelete(deletedItem, (err, doc) => {
+          if (err) {
+            console.log(err);
+          }
+          else {
+            res.redirect("/");
+          }
+        })
+      }
+      else{
+        List.findOneAndUpdate({name: listName}, {$pull: { items: {_id: deletedItem}}}, (err, result) => {
+          if (!err) {
+            console.log(result);
+            res.redirect("/"+listName);
+          }
+        })
+      }
+  } catch (error) {
+    console.log(error);
+  }
 })
 
 app.get("/:theme", (req, res) => {
-  const {theme} = req.params;
+  const theme = _.capitalize(req.params.theme);
   List.findOne({name: theme}, (err, item) => {
     if(!err) {
       if (!item) {
